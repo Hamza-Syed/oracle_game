@@ -1,0 +1,8 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+memory.json
+memory.json.tmp
+memory.json.*.tmp
+memory.corrupt*.json
