@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import re
+import sys
 import tempfile
 
 from personalities import PERSONALITY_NAMES
@@ -33,10 +34,21 @@ def nonnegative_integer(value):
     return value if type(value) is int and value >= 0 else 0
 
 
+def default_memory_path():
+    """Frozen builds use user storage, never PyInstaller's bundled resources."""
+    if getattr(sys, "frozen", False):
+        local_data = os.environ.get("LOCALAPPDATA", "").strip()
+        base = Path(local_data) if local_data else Path.home() / "AppData" / "Local"
+        return base / "TheOracle" / "memory.json"
+    return Path(__file__).with_name("memory.json")
+
+
 class Memory:
     def __init__(self, path=None):
         # Keep the save beside the game even when launched from another folder.
-        self.path = Path(path) if path is not None else Path(__file__).with_name("memory.json")
+        self.path = Path(path) if path is not None else default_memory_path()
+        if path is None and getattr(sys, "frozen", False):
+            self.path.parent.mkdir(parents=True, exist_ok=True)
         self.questions_asked = 0
         self.question_history = []
         self.repeat_count = {}

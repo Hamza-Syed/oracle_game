@@ -1,5 +1,17 @@
 # The Oracle v1.0 release-candidate QA
 
+Release verification update, 2026-09-14: the project owner confirms successful
+manual source and packaged Windows verification. Packaged checks covered GUI
+launch, personality selection, normal consultations, animations, conversational
+responses, follow-ups, preference banter, self-evaluation, profanity reactions,
+safety, and Stats/History/Achievements/Help. Save/reopen persistence works at
+`%LOCALAPPDATA%\TheOracle\memory.json`. Windows packaging is complete, the MIT
+License is selected, and all 253 automated tests pass. `VERSION` is `1.0.0`.
+
+The report below preserves the original 2026-09-12 audit as historical evidence;
+its pending manual-check, packaging, versioning, and Git observations describe
+that earlier state and are superseded by this update.
+
 Audit date: 2026-09-12. Recommendation: **READY WITH MINOR CAVEATS**.
 
 The automated and scripted checks found no release-blocking gameplay defect.

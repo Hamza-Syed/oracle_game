@@ -1,6 +1,26 @@
 # The Oracle
 
-A Python game with terminal and graphical frontends, personality, persistent memory, and discoveries.
+A playful Python Magic 8 Ball game with seven personalities, persistent memory,
+and hidden discoveries, available through a terminal or animated Tkinter GUI.
+
+**The Oracle v1.0.0**
+Release-candidate QA, 253 automated tests, and owner-confirmed manual source and
+packaged Windows GUI verification are complete, including safety and save/reopen persistence.
+The authoritative project version is stored in [VERSION](VERSION).
+See the [changelog](CHANGELOG.md) and [release notes](RELEASE_NOTES_v1.0.0.md).
+
+## Windows Release
+
+Download
+`TheOracle-v1.0.0-Windows.zip` from [GitHub Releases](https://github.com/Hamza-Syed/oracle_game/releases),
+extract the entire ZIP, and launch `TheOracle.exe` inside the extracted folder.
+Keep its `_internal` folder alongside it. No Python installation is required.
+Packaged saves use `%LOCALAPPDATA%\TheOracle\memory.json` (or
+`~/AppData/Local/TheOracle/memory.json` if that environment variable is unavailable).
+The executable is unsigned; Windows may show a reputation warning.
+
+## Run from source
+
 Requires Python 3.10 or newer; release checks currently run on Python 3.14.
 No third-party Python packages are required. The GUI also needs Tkinter.
 
@@ -27,6 +47,8 @@ typed commands also work. Responses wrap and scroll, showing only the latest con
 Achievement unlocks appear together in a temporary banner. Safety guidance appears immediately
 plainly with the ball hidden. Closing the window exits without adding a question.
 
+## Personalities
+
 Choose a personality, then ask questions:
 
 1. **Wise Sage**: calm, thoughtful guidance.
@@ -41,6 +63,8 @@ Each personality has 12 normal answers mixing positive, negative, and uncertain
 predictions, plus its own exam, job, and internship reactions. Use `change` to
 switch to any personality during a session.
 
+## Features
+
 Occasionally the Oracle may hesitate, behave unusually, or offer a surprising
 reply instead of a prediction. Some moments are much rarer than others; discover
 them as you play. Your question still counts and is saved, whatever the reply.
@@ -51,7 +75,7 @@ Reflections have several variations for each personality and stage. Within a
 session, the same personality/stage avoids repeating its last reflection.
 The Oracle contains hidden achievements and Easter eggs for curious players to discover.
 
-Commands:
+### Commands and conversation
 
 - `change`: choose a different personality.
 - `help`: list all commands and their explanations.
@@ -84,8 +108,11 @@ count each asking after the first: asking one question five times adds four
 repeats. History display never removes questions from your save. Locked secret
 achievements appear as `???`; their names and descriptions appear after unlocking.
 
-Memory and achievements save after each question in `memory.json` beside the
-game. A new game starts with empty memory only when no save exists; an existing
+## Memory and saves
+
+Source-mode memory and achievements save after each question in `memory.json`
+beside `memories.py`. The packaged app uses the per-user location above and does
+not automatically copy source saves. A new game starts with empty memory only when no save exists; an existing
 save restores your progress. Keep a backup of `memory.json` to preserve it.
 Run only one game instance at a time; close the terminal or GUI before opening
 the other. Both use the same save, even when launched from another folder.
@@ -104,7 +131,21 @@ memory, history, counts, or achievements, and no safety log is written.
 This offline, pattern-based check can miss intent or misread context; it is not
 a clinical assessment or a substitute for human support or emergency services.
 
-## Files
+## Screenshots
+
+### Main Oracle
+
+![The Oracle main interface](docs/screenshots/oracle-main.png)
+
+### Achievements
+
+![The Oracle achievements window](docs/screenshots/oracle-achievements.png)
+
+### Stats
+
+![The Oracle statistics window](docs/screenshots/oracle-stats.png)
+
+## Project structure
 
 - `main.py`: terminal menus, input, result rendering, and exit handling.
 - `gui.py`: Tkinter window, Canvas ball, personality selector, and result/data displays.
@@ -121,9 +162,11 @@ a clinical assessment or a substitute for human support or emergency services.
 
 Saves persist between sessions, and older formats remain supported. Damaged
 fields are recovered where possible while keeping valid data. Unreadable saves
-are backed up beside the game before starting fresh; if backup fails, the game
+are backed up beside the save before starting fresh; if backup fails, the game
 leaves the original alone and reports the problem. Saving replaces the previous
 file only after the new file has been fully written.
+
+## Testing
 
 Run the automated checks:
 
@@ -131,123 +174,8 @@ Run the automated checks:
 python -m unittest discover -s tests -v
 ```
 
-## Development: shared engine
+See [developer notes](docs/DEVELOPMENT.md) for the engine API and GUI test checklist.
 
-`OracleGame` in `game.py` owns one session's selected personality, `Memory`, and
-`AchievementTracker`. It coordinates the existing specialist modules and never
-calls `input()` or `print()`. `main.py` is the terminal frontend and `gui.py` is the
-Tkinter frontend. Both call the same engine; GUI widgets stay outside it.
+## License
 
-```python
-from game import OracleGame
-from memories import Memory
-
-game = OracleGame(Memory("example-memory.json"))
-choices = game.get_personalities()  # {personality_id: display_name}
-selection = game.select_personality("sage")
-result = game.process_input("Will I pass my exam?")
-stats = game.get_stats()           # No simulated command or terminal parsing
-```
-
-Public methods:
-
-- `get_personalities()`: a copy of the seven IDs and display names.
-- `select_personality(id)`: selects or switches, returning a `GameResult`.
-  Invalid IDs leave the current selection and progress unchanged.
-- `process_input(text)`: handles exact commands, blank input, safety, narrow conversational input, and gameplay.
-- `get_help()`: a command-to-explanation dictionary.
-- `get_stats()`: a snapshot with `questions_asked`, `unique_questions`,
-  `repeated_questions`, `personality_id`, `personality_name`, `awareness_stage`,
-  `achievements_unlocked`, `normal_achievements`, and `favorite_topic`.
-- `get_history()`: the latest ten `{number, question}` entries, oldest first.
-- `get_achievements()`: `{name, description, unlocked}` entries. Locked secret
-  entries have `None` for name and description, so an interface cannot reveal them
-  accidentally by displaying this data.
-
-`GameResult` contains:
-
-| Field | Meaning |
-| --- | --- |
-| `kind` | `question`, `conversation`, `follow_up`, `vulgar_reaction`, `self_evaluation`, `preference`, `safety`, `easter_egg`, `event`, `blank`, a display command name, `quit`, `select_personality`, `personality_selected`, or `invalid_selection` |
-| `messages` | Ordered `Message(role, text)` objects, without terminal headers or trophy formatting |
-| `new_achievements` | Names newly unlocked by this operation |
-| `data` | A display-command snapshot, event metadata, or `None` |
-| `save_error` | An error string if this operation could not save, otherwise `None` |
-
-Message roles distinguish `topic`, `repeat_notice`, `repeat`, `achievement`,
-`answer`, `event`, `awareness`, `easter_egg`, `safety`, `notice`, and `error`.
-Render them in order. Achievement messages contain the name; `new_achievements`
-exposes the same unlocks for UI state, so do not render a second notification for
-that list. Event metadata retains `message`, `rarity`, and `show_normal_answer`.
-Safety results contain guidance, not the submitted sensitive text.
-
-The frontend handles `quit` and `select_personality`; these results do not close
-the process or open a menu themselves. A new engine starts without a personality.
-Before selection, an ordinary question requests selection without recording it;
-safety assessment still applies. For a new session, construct a new engine with
-a newly loaded `Memory`, preserving the existing session-boundary behavior.
-
-Startup load errors propagate to the frontend. Save failures return `save_error`
-and messages while preserving session progress for the next save attempt.
-Gameplay hooks can be mocked in `game`, and the existing achievement clock remains
-mockable in `achievements`; production randomness is not seeded.
-Awareness selection keeps only the last line per personality/stage in `OracleGame`.
-It does not scan history or add save fields. The normal trigger roll runs first;
-only a successful roll excludes the previous line from selection.
-
-Follow-up context is also session-only: an eligible personality ID and a reaction
-counter, with no stored answer text or extra question copy. Normal answers,
-reflective replies, preference banter, and Easter eggs qualify; events qualify
-only when accompanied by a normal answer. Replacement events alone do not.
-New consultations clear and then replace context if eligible. Actual personality
-changes, safety, quitting, and restarting clear it. Selecting the same personality,
-display commands, blanks, conversational acknowledgments, and vulgar reactions preserve it without
-extending the two-reaction limit. A recognized reaction without context asks for
-a new consultation and remains progression-neutral. GUI follow-ups leave existing
-achievement banners and their timers alone.
-
-The save file assumes one active process. Simultaneous independent processes may
-overwrite each other's newer progress; atomic saving prevents partial files but
-does not merge separate sessions.
-
-## Development: GUI checks
-
-`tests/test_gui.py` exercises the thin GUI callbacks and render preparation with
-widget doubles, so those tests do not require a display server. It covers direct
-engine calls, submission guarding, ordered messages, safety styling, secret
-visibility, save errors, dialog focus, and clean shutdown. Additional checks cover
-delayed reveals, control restoration, stale callback guards, banner replacement,
-safety cancellation, personality accents, and secondary-window reuse.
-
-Animation state stays in `gui.py`: a 900 ms sequence uses `after()` callbacks and
-redraws around a fixed center. Presentation tokens guard against stale callbacks;
-closing or a safety result cancels the reveal. The engine processes and saves the
-question before the visual delay, so closing during a reveal does not undo progress.
-Personality changes wait until the reveal finishes. Banners expire after five seconds.
-
-A scripted check with hidden real Tk 8.6 widgets also verified construction,
-personality selection/switching, Ask button callbacks, Return binding registration,
-all four information windows, special replies, achievement display, safety text,
-and closing. A further hidden-window check exercised real timer-driven reveals,
-event-loop responsiveness, banner expiry, safety cancellation, window reuse,
-three window geometries, and closing mid-animation without callback errors.
-This does not replace visual or keyboard smoke testing.
-
-Manual desktop checklist for this first GUI:
-
-- Launch `python gui.py`; check layout at the default and minimum window sizes.
-- Check ball depth and centering, subtle shake, consultation text, and delayed reveal.
-- Resize during a reveal; check the ball returns to center and the UI stays responsive.
-- Check that all seven personalities appear and question controls require selection.
-- Submit with Enter and Ask; verify one question per submission and a cleared entry.
-- Repeatedly press Enter/Ask during the reveal; check no duplicate question and restored focus afterward.
-- Change personality, including selecting the current one.
-- Check the current-personality label and small accent update without changing the overall design.
-- Open Stats, History, Achievements, and Help through both buttons and typed commands.
-- Check ordinary and special replies, achievement notifications, and long response scrolling.
-- Check grouped achievement banners disappear, event emphasis is subtle, and reflections are readable in italics.
-- Check that safety guidance stays readable, preserves its wording, and hides the ball.
-- Verify safety has no entertainment delay or banner, and save warnings do not hide responses.
-- Close with the window control and with typed `quit`.
-- Close during the shake and check no delayed callback errors appear.
-- Run `python main.py` to check the terminal frontend independently.
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
